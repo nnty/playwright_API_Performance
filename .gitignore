@@ -6,3 +6,6 @@ allure-report/
 
 # Contract Testing
 pacts/
+
+#env variables
+.env
