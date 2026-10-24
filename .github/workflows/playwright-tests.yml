@@ -11,29 +11,6 @@ on:
       - master
 
 jobs:
-  ui-tests:
-    name: Run UI Tests
-    timeout-minutes: 60
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
-      - name: Run Playwright tests
-        run: npx playwright test
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-ui-report
-          path: playwright-report/
-          retention-days: 30
-
   api-tests:
     name: Run API Tests
     timeout-minutes: 15
@@ -49,7 +26,8 @@ jobs:
       - name: Install Playwright Core
         run: npx playwright install chromium --with-deps
       - name: Run Playwright API tests
-        run: npx playwright test tests/api/ --project="API Tests"
+        # Now you can just run all tests without specifying the project
+        run: npx playwright test
       - name: Generate Allure Report
         if: always()
         run: npx allure generate ./allure-results --clean -o ./allure-report
@@ -60,11 +38,11 @@ jobs:
           name: allure-api-report
           path: ./allure-report/
           retention-days: 30
-      #- name: Publish Pact Contracts
-      #  if: github.ref == 'refs/heads/main'
-      # run: |
-      #    npx pact-broker publish ./pacts \
-      #      --broker-base-url ${{ secrets.PACT_BROKER_URL }} \
-      #      --broker-token ${{ secrets.PACT_BROKER_TOKEN }} \
-      #      --consumer-app-version ${{ github.sha }} \
-      #      --branch main
+      # - name: Publish Pact Contracts
+      #   if: github.ref == 'refs/heads/main'
+      #   run: |
+      #     npx pact-broker publish ./pacts \
+      #       --broker-base-url ${{ secrets.PACT_BROKER_URL }} \
+      #       --broker-token ${{ secrets.PACT_BROKER_TOKEN }} \
+      #       --consumer-app-version ${{ github.sha }} \
+      #       --branch main
