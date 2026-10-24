@@ -1,0 +1,8 @@
+# Test Reports
+playwright-report/
+test-results/
+allure-results/
+allure-report/
+
+# Contract Testing
+pacts/
