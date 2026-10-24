@@ -26,7 +26,6 @@ jobs:
       - name: Install Playwright Core
         run: npx playwright install chromium --with-deps
       - name: Run Playwright API tests
-        # Now you can just run all tests without specifying the project
         run: npx playwright test
       - name: Generate Allure Report
         if: always()
@@ -38,11 +37,10 @@ jobs:
           name: allure-api-report
           path: ./allure-report/
           retention-days: 30
-      # - name: Publish Pact Contracts
-      #   if: github.ref == 'refs/heads/main'
-      #   run: |
-      #     npx pact-broker publish ./pacts \
-      #       --broker-base-url ${{ secrets.PACT_BROKER_URL }} \
-      #       --broker-token ${{ secrets.PACT_BROKER_TOKEN }} \
-      #       --consumer-app-version ${{ github.sha }} \
-      #       --branch main
+      - name: Upload Playwright HTML Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-html-report
+          path: playwright-report/
+          retention-days: 30

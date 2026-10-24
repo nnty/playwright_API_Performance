@@ -14,7 +14,7 @@ export default defineConfig({
   workers: isCI ? 2 : undefined,
   
   reporter: [
-    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+   ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['allure-playwright', { 
       detail: true, 
       outputFolder: 'allure-results',
