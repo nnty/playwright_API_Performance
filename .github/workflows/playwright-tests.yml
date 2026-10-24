@@ -1,35 +1,64 @@
-name: Playwright Test Suite
+name: Playwright & Performance Quality Gate
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [ main, master ]
   pull_request:
-    branches:
-      - main
-      - master
+    branches: [ main, master ]
 
 jobs:
-  api-tests:
-    name: Run API Tests
-    timeout-minutes: 15
+  test-suite:
+    name: Run API & Performance Tests
+    timeout-minutes: 20
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: lts/*
           cache: npm
+          
+      - name: Setup Java (Required for JMeter)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Modern JMeter
+        run: |
+          wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
+          tar -xzf apache-jmeter-5.6.3.tgz
+          sudo mv apache-jmeter-5.6.3 /opt/jmeter
+          sudo chmod +x /opt/jmeter/bin/jmeter
+          sudo ln -s /opt/jmeter/bin/jmeter /usr/local/bin/jmeter
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
       - name: Install dependencies
         run: npm ci
+
       - name: Install Playwright Core
         run: npx playwright install chromium --with-deps
-      - name: Run Playwright API tests
+
+      - name: Run Playwright Test Suite
         run: npx playwright test
+        env:
+          TARGET_ENV: ${{ secrets.TARGET_ENV || 'https://restful-booker.herokuapp.com' }}
+
       - name: Generate Allure Report
         if: always()
         run: npx allure generate ./allure-results --clean -o ./allure-report
+
       - name: Upload Allure API Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -37,21 +66,14 @@ jobs:
           name: allure-api-report
           path: ./allure-report/
           retention-days: 30
-      - name: Upload Playwright HTML Report
+
+      - name: Upload Playwright & Performance Artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-html-report
-          path: playwright-report/
+          name: full-test-artifacts
+          path: |
+            playwright-report/
+            load-tests/k6-summary.json
+            load-tests/results.jtl
           retention-days: 30
-      - name: Install JMeter
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jmeter
-      - name: Install k6
-        run: |
-          sudo gpg -k
-          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update
-          sudo apt-get install k6
